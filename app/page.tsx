@@ -7,7 +7,6 @@ import { DashboardHeader } from "@/components/dashboard-header"
 import { DashboardHome } from "@/components/dashboard-home"
 import { VehicleConfigCard } from "@/components/vehicle-config-card"
 import { StewardshipWidget } from "@/components/stewardship-widget"
-import { ScreenLogin } from "@/components/screen-login"
 import { ScreenCorridas } from "@/components/screen-corridas"
 import { ScreenRelatorios } from "@/components/screen-relatorios"
 import { OnboardingModal } from "@/components/onboarding-modal"
@@ -26,18 +25,17 @@ import {
   calcularLucroReal,
 } from "@/lib/dashboard-store"
 
-const USE_API = process.env.NEXT_PUBLIC_USE_API === "true"
-
 const HEADER_MAP: Record<string, { title: string; subtitle?: string }> = {
   dashboard: { title: "LogosRoute" },
   corridas: { title: "Minhas Corridas", subtitle: "Registre suas entregas" },
-  moto: { title: "Configurar Moto", subtitle: "Dados do veiculo" },
-  metas: { title: "Metas de Mordomia", subtitle: "Equilibrio e saude" },
-  relatorios: { title: "Relatorios", subtitle: "Analise detalhada" },
+  moto: { title: "Configurar Moto", subtitle: "Dados do veículo" },
+  metas: { title: "Metas de Mordomia", subtitle: "Equilíbrio e saúde" },
+  relatorios: { title: "Relatórios", subtitle: "Análise detalhada" },
 }
 
 export default function DashboardPage() {
   const auth = useAuth()
+  
   const [activeSection, setActiveSection] = useState("dashboard")
   const [showOnboarding, setShowOnboarding] = useState(true)
 
@@ -46,6 +44,8 @@ export default function DashboardPage() {
   const [metas, setMetas] = useState<MetaMordomiaDto>(mockMetas)
   const [corridas, setCorridas] = useState<CorridaDto[]>(initialCorridas)
   const [dadosSemanais, setDadosSemanais] = useState<DadosDiariosDto[]>(mockDadosSemanais)
+
+  // ======================== CÁLCULOS ========================
 
   const custosOperacionais = useMemo(
     () =>
@@ -64,30 +64,6 @@ export default function DashboardPage() {
   )
 
   // ======================== HANDLERS ========================
-
-  const handleApiLogin = useCallback(
-    async (body: { email: string; senha: string }) => {
-      await auth.login(body)
-      setActiveSection("dashboard")
-    },
-    [auth]
-  )
-
-  const handleApiCadastro = useCallback(
-    async (body: { nome: string; email: string; senha: string; cidade: string; appUtilizado: string }) => {
-      await auth.cadastro(body)
-      setActiveSection("dashboard")
-    },
-    [auth]
-  )
-
-  const handleMockCadastro = useCallback(
-    (nome: string, cidade: string, appUtilizado: string) => {
-      auth.loginMock(nome, cidade, appUtilizado)
-      setActiveSection("dashboard")
-    },
-    [auth]
-  )
 
   const handleVeiculoUpdate = useCallback(
     (newConfig: VeiculoConfigDto) => {
@@ -128,65 +104,48 @@ export default function DashboardPage() {
     setMetas(m)
   }, [])
 
+  const handleLogout = useCallback(() => {
+    auth.logout()
+    // Opcional: Adicione um alert ou console.log aqui apenas para debugar se quiser
+    console.log("Logout acionado (Redirecionamento desativado para testes)")
+  }, [auth])
+
   const handleNavigate = useCallback(
     (id: string) => {
       if (id === "login") {
-        auth.logout()
+        handleLogout()
+        return
       }
       setActiveSection(id)
     },
-    [auth]
+    [handleLogout]
   )
-
-  const handleLogout = useCallback(() => {
-    auth.logout()
-    setActiveSection("login")
-  }, [auth])
-
-  // ======================== LOGIN ========================
-
-  if (!auth.isAuthenticated) {
-    return (
-      <ScreenLogin
-        usarApi={USE_API}
-        onLogin={handleApiLogin}
-        onCadastro={handleApiCadastro}
-        onCadastroMock={handleMockCadastro}
-        isLoading={auth.isLoading}
-        error={auth.error}
-      />
-    )
-  }
 
   // ======================== APP SHELL ========================
 
   const headerInfo = HEADER_MAP[activeSection] || HEADER_MAP.dashboard
+  const nomeExibicao = auth.motorista?.nome || "Piloto de Testes" // Fallback para não quebrar a UI sem login
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Desktop sidebar (hidden on mobile) */}
       <AppSidebar
         activeSection={activeSection}
         onNavigate={handleNavigate}
-        motoristaName={auth.motorista?.nome}
+        motoristaName={nomeExibicao}
       />
 
       {showOnboarding && (
         <OnboardingModal onClose={() => setShowOnboarding(false)} />
       )}
 
-      {/* Main content: no left margin on mobile, sidebar offset on desktop */}
       <main className="lg:ml-[280px] min-h-screen pb-20 lg:pb-8">
         <div className="px-4 py-4 lg:px-8 lg:py-8 max-w-5xl mx-auto">
           <div className="flex flex-col gap-4">
-            {/* Header */}
             <DashboardHeader
               title={headerInfo.title}
               subtitle={headerInfo.subtitle}
               onLogout={handleLogout}
             />
-
-            {/* ---- SCREENS ---- */}
 
             {activeSection === "dashboard" && (
               <DashboardHome
@@ -195,7 +154,7 @@ export default function DashboardPage() {
                 custosOperacionais={custosOperacionais}
                 kmRodado={corridaDoDia.kmRodado}
                 horasTrabalhadas={corridaDoDia.horasTrabalhadas}
-                motoristaName={auth.motorista?.nome}
+                motoristaName={nomeExibicao}
                 dadosSemanais={dadosSemanais}
                 dadosMensais={mockDadosMensais}
                 onNavigate={handleNavigate}
@@ -237,7 +196,6 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      {/* Mobile bottom tab navigation */}
       <BottomNav active={activeSection} onNavigate={handleNavigate} />
     </div>
   )

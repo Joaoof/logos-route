@@ -75,8 +75,8 @@ function NavList({
 function SidebarBrand() {
   return (
     <div className="flex items-center gap-3">
-      <div className="flex items-center justify-center size-10 rounded-xl bg-primary shadow-sm">
-        <Route className="size-5 text-primary-foreground" />
+      <div className="flex items-center justify-center size-20 rounded-xl">
+          <img src="logos.png" alt="" />
       </div>
       <div>
         <span className="text-lg font-bold tracking-tight text-foreground">
