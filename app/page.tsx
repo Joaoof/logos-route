@@ -11,6 +11,7 @@ import { ScreenCorridas } from "@/components/screen-corridas"
 import { ScreenRelatorios } from "@/components/screen-relatorios"
 import { OnboardingModal } from "@/components/onboarding-modal"
 import { useAuth } from "@/hooks/use-auth"
+import { PaywallLock } from "@/components/paywall-lock" // <-- IMPORTAÇÃO CORRIGIDA AQUI
 import type { VeiculoConfigDto, CorridaDto, MetaMordomiaDto, DadosDiariosDto } from "@/lib/types"
 import {
   mockVeiculo,
@@ -44,6 +45,12 @@ export default function DashboardPage() {
   const [metas, setMetas] = useState<MetaMordomiaDto>(mockMetas)
   const [corridas, setCorridas] = useState<CorridaDto[]>(initialCorridas)
   const [dadosSemanais, setDadosSemanais] = useState<DadosDiariosDto[]>(mockDadosSemanais)
+
+  // ======================== LÓGICA DE PAYWALL ========================
+  // No futuro isso virá do seu backend. Agora está hardcoded para testar o bloqueio.
+  const isPro = false; 
+  const trialAcabou = true;
+  const acessoBloqueado = !isPro && trialAcabou;
 
   // ======================== CÁLCULOS ========================
 
@@ -106,7 +113,6 @@ export default function DashboardPage() {
 
   const handleLogout = useCallback(() => {
     auth.logout()
-    // Opcional: Adicione um alert ou console.log aqui apenas para debugar se quiser
     console.log("Logout acionado (Redirecionamento desativado para testes)")
   }, [auth])
 
@@ -124,7 +130,7 @@ export default function DashboardPage() {
   // ======================== APP SHELL ========================
 
   const headerInfo = HEADER_MAP[activeSection] || HEADER_MAP.dashboard
-  const nomeExibicao = auth.motorista?.nome || "Piloto de Testes" // Fallback para não quebrar a UI sem login
+  const nomeExibicao = auth.motorista?.nome || "Piloto de Testes"
 
   return (
     <div className="min-h-screen bg-background">
@@ -147,6 +153,7 @@ export default function DashboardPage() {
               onLogout={handleLogout}
             />
 
+            {/* DASHBOARD - SEMPRE GRÁTIS */}
             {activeSection === "dashboard" && (
               <DashboardHome
                 lucroReal={lucroReal}
@@ -161,6 +168,7 @@ export default function DashboardPage() {
               />
             )}
 
+            {/* CORRIDAS - SEMPRE GRÁTIS */}
             {activeSection === "corridas" && (
               <ScreenCorridas
                 corridas={corridas}
@@ -170,27 +178,51 @@ export default function DashboardPage() {
               />
             )}
 
+            {/* MOTO - BLOQUEADO PARA PRO */}
             {activeSection === "moto" && (
-              <div className="max-w-lg">
-                <VehicleConfigCard veiculo={veiculo} onUpdate={handleVeiculoUpdate} />
-              </div>
-            )}
-
-            {activeSection === "metas" && (
-              <div className="max-w-xl">
-                <StewardshipWidget
-                  metas={metas}
-                  editable
-                  onUpdateMetas={handleUpdateMetas}
+              acessoBloqueado ? (
+                <PaywallLock 
+                  featureName="Gestão Inteligente da Moto" 
+                  description="Calcule o desgaste exato e saiba quando sua moto vai precisar de manutenção antes que ela te deixe na mão." 
                 />
-              </div>
+              ) : (
+                <div className="max-w-lg">
+                  <VehicleConfigCard veiculo={veiculo} onUpdate={handleVeiculoUpdate} />
+                </div>
+              )
             )}
 
+            {/* METAS - BLOQUEADO PARA PRO */}
+            {activeSection === "metas" && (
+              acessoBloqueado ? (
+                <PaywallLock 
+                  featureName="Metas de Mordomia" 
+                  description="Para ter acesso a metas de performance e equilíbrio financeiro pessoal, evolua para o plano PRO." 
+                />
+              ) : (
+                <div className="max-w-xl">
+                  <StewardshipWidget
+                    metas={metas}
+                    editable
+                    onUpdateMetas={handleUpdateMetas}
+                  />
+                </div>
+              )
+            )}
+
+            {/* RELATÓRIOS - BLOQUEADO PARA PRO */}
             {activeSection === "relatorios" && (
-              <ScreenRelatorios
-                dadosSemanais={dadosSemanais}
-                dadosMensais={mockDadosMensais}
-              />
+              acessoBloqueado ? (
+                <PaywallLock 
+                  featureName="Relatórios de Alta Performance" 
+                  description="Onde você está perdendo dinheiro? Pare de adivinhar. Desbloqueie gráficos semanais e mensais para otimizar seus lucros reais." 
+                />
+              ) : (
+                <ScreenRelatorios
+                  dadosSemanais={dadosSemanais}
+                  dadosMensais={mockDadosMensais}
+                />
+              )
             )}
           </div>
         </div>

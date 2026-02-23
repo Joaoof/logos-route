@@ -127,3 +127,12 @@ export interface ProblemDetails {
   detail?: string
   errors?: Record<string, string[]>
 }
+
+// Adicione ao seu lib/types.ts
+export interface MotoristaDto {
+  id: number;
+  nome: string;
+  email: string;
+  plano: "free" | "pro";
+  dataFimTrial: string; 
+}
