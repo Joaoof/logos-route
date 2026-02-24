@@ -80,7 +80,7 @@ function SidebarBrand() {
       </div>
       <div>
         <span className="text-lg font-bold tracking-tight text-foreground">
-          LogosRoute
+          Seja bem vindo
         </span>
         <p className="text-[11px] text-muted-foreground font-normal">
           Lucro Real do Motoboy

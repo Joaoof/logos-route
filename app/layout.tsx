@@ -9,7 +9,7 @@ const _geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono
 export const metadata: Metadata = {
   title: 'LogosRoute - Lucro Real do Motoboy',
   description: 'Dashboard PWA para motoboys calcularem seu lucro real, descontando combustivel e manutencao em tempo real.',
-  generator: 'v0.app',
+  generator: 'React',
   manifest: '/manifest.json',
   icons: {
     icon: [

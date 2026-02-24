@@ -27,8 +27,8 @@ export function DashboardHeader({
     <header className="flex items-center justify-between">
       {/* Left: brand */}
       <div className="flex items-center gap-2.5">
-        <div className="flex items-center justify-center size-9 rounded-xl bg-primary">
-          <Route className="size-4.5 text-primary-foreground" />
+        <div className="flex items-center justify-center size-25 rounded-xl">
+            <img src="logos.png" alt="" />
         </div>
         <div className="min-w-0">
           <h1 className="text-base font-bold text-foreground leading-tight truncate">

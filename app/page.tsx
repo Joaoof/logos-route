@@ -6,12 +6,12 @@ import { BottomNav } from "@/components/bottom-nav"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { DashboardHome } from "@/components/dashboard-home"
 import { VehicleConfigCard } from "@/components/vehicle-config-card"
-import { StewardshipWidget } from "@/components/stewardship-widget"
+import { MetasDashboard } from "@/components/stewardship-widget"
 import { ScreenCorridas } from "@/components/screen-corridas"
 import { ScreenRelatorios } from "@/components/screen-relatorios"
 import { OnboardingModal } from "@/components/onboarding-modal"
 import { useAuth } from "@/hooks/use-auth"
-import { PaywallLock } from "@/components/paywall-lock" // <-- IMPORTAÇÃO CORRIGIDA AQUI
+// import { PaywallLock } from "@/components/paywall-lock" // <-- IMPORTAÇÃO CORRIGIDA AQUI
 import type { VeiculoConfigDto, CorridaDto, MetaMordomiaDto, DadosDiariosDto } from "@/lib/types"
 import {
   mockVeiculo,
@@ -27,7 +27,7 @@ import {
 } from "@/lib/dashboard-store"
 
 const HEADER_MAP: Record<string, { title: string; subtitle?: string }> = {
-  dashboard: { title: "LogosRoute" },
+  dashboard: { title: "Seja bem vindo!" },
   corridas: { title: "Minhas Corridas", subtitle: "Registre suas entregas" },
   moto: { title: "Configurar Moto", subtitle: "Dados do veículo" },
   metas: { title: "Metas de Mordomia", subtitle: "Equilíbrio e saúde" },
@@ -180,49 +180,21 @@ export default function DashboardPage() {
 
             {/* MOTO - BLOQUEADO PARA PRO */}
             {activeSection === "moto" && (
-              acessoBloqueado ? (
-                <PaywallLock 
-                  featureName="Gestão Inteligente da Moto" 
-                  description="Calcule o desgaste exato e saiba quando sua moto vai precisar de manutenção antes que ela te deixe na mão." 
-                />
-              ) : (
-                <div className="max-w-lg">
                   <VehicleConfigCard veiculo={veiculo} onUpdate={handleVeiculoUpdate} />
-                </div>
-              )
             )}
 
             {/* METAS - BLOQUEADO PARA PRO */}
             {activeSection === "metas" && (
-              acessoBloqueado ? (
-                <PaywallLock 
-                  featureName="Metas de Mordomia" 
-                  description="Para ter acesso a metas de performance e equilíbrio financeiro pessoal, evolua para o plano PRO." 
-                />
-              ) : (
-                <div className="max-w-xl">
-                  <StewardshipWidget
-                    metas={metas}
-                    editable
-                    onUpdateMetas={handleUpdateMetas}
-                  />
-                </div>
-              )
+              <div className="max-w-xl">
+                <MetasDashboard />
+              </div>
             )}
 
-            {/* RELATÓRIOS - BLOQUEADO PARA PRO */}
             {activeSection === "relatorios" && (
-              acessoBloqueado ? (
-                <PaywallLock 
-                  featureName="Relatórios de Alta Performance" 
-                  description="Onde você está perdendo dinheiro? Pare de adivinhar. Desbloqueie gráficos semanais e mensais para otimizar seus lucros reais." 
-                />
-              ) : (
-                <ScreenRelatorios
-                  dadosSemanais={dadosSemanais}
-                  dadosMensais={mockDadosMensais}
-                />
-              )
+              <ScreenRelatorios
+                dadosSemanais={dadosSemanais}
+                dadosMensais={mockDadosMensais}
+              />
             )}
           </div>
         </div>
