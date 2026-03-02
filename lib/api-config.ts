@@ -5,15 +5,33 @@
 
 import type { ProblemDetails } from "./types"
 
+const REQUEST_TIMEOUT_MS = 12000
+const TOKEN_KEY = "logosroute_jwt"
+
+function resolveApiBaseUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+
+  try {
+    const url = new URL(raw)
+    const isLocalhost = ["localhost", "127.0.0.1"].includes(url.hostname)
+    const isHttps = url.protocol === "https:"
+
+    if (process.env.NODE_ENV === "production" && !isHttps && !isLocalhost) {
+      throw new Error("NEXT_PUBLIC_API_URL deve usar HTTPS em produção")
+    }
+
+    return url.toString().replace(/\/$/, "")
+  } catch {
+    throw new Error(`NEXT_PUBLIC_API_URL inválida: ${raw}`)
+  }
+}
+
 /**
  * URL base da API C# .NET.
  * Em dev, use http://localhost:5000/api (ou a porta do launchSettings).
  * Em prod, troque por https://api.logosroute.com.br/api.
- *
- * Variavel de ambiente: NEXT_PUBLIC_API_URL
  */
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+export const API_BASE_URL = resolveApiBaseUrl()
 
 /**
  * Quando true, o front usa dados mock locais e nunca chama a API real.
@@ -28,24 +46,25 @@ export const USE_MOCK =
     ? false
     : !process.env.NEXT_PUBLIC_API_URL
 
-// ======================== TOKEN ========================
+function getStorage(): Storage | null {
+  if (typeof window === "undefined") return null
 
-const TOKEN_KEY = "logosroute_jwt"
+  const pref = process.env.NEXT_PUBLIC_TOKEN_STORAGE
+  if (pref === "session") return window.sessionStorage
+  return window.localStorage
+}
 
 export function getToken(): string | null {
-  if (typeof window === "undefined") return null
-  return localStorage.getItem(TOKEN_KEY)
+  return getStorage()?.getItem(TOKEN_KEY) ?? null
 }
 
 export function setToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token)
+  getStorage()?.setItem(TOKEN_KEY, token)
 }
 
 export function removeToken(): void {
-  localStorage.removeItem(TOKEN_KEY)
+  getStorage()?.removeItem(TOKEN_KEY)
 }
-
-// ======================== FETCH WRAPPER ========================
 
 export class ApiError extends Error {
   status: number
@@ -61,38 +80,79 @@ export class ApiError extends Error {
   }
 }
 
+function toApiError(status: number, body: unknown): ApiError {
+  if (body && typeof body === "object" && "title" in body && "status" in body) {
+    return new ApiError(body as ProblemDetails)
+  }
+
+  return new ApiError({
+    title: status >= 500 ? "Erro interno do servidor" : "Falha na requisição",
+    status,
+    detail: typeof body === "string" ? body : undefined,
+  })
+}
+
+async function parseResponseBody(res: Response): Promise<unknown> {
+  const contentType = res.headers.get("content-type") || ""
+
+  if (contentType.includes("application/json")) {
+    return res.json()
+  }
+
+  return res.text()
+}
+
 /**
  * Wrapper generico para fetch. Injeta JWT no header Authorization,
- * trata ProblemDetails, e retorna o body tipado.
+ * aplica timeout e trata retorno de erro de forma segura.
  */
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
   const token = getToken()
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
 
   const headers: HeadersInit = {
     "Content-Type": "application/json",
+    Accept: "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers as Record<string, string>),
   }
 
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-  })
+  try {
+    const res = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      cache: "no-store",
+      credentials: "omit",
+      referrerPolicy: "strict-origin-when-cross-origin",
+      headers,
+      signal: controller.signal,
+    })
 
-  // Sem conteudo (204 No Content)
-  if (res.status === 204) {
-    return undefined as T
+    if (res.status === 204) {
+      return undefined as T
+    }
+
+    const body = await parseResponseBody(res)
+
+    if (!res.ok) {
+      throw toApiError(res.status, body)
+    }
+
+    return body as T
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new ApiError({
+        title: "Tempo de requisição excedido",
+        status: 408,
+        detail: "A API demorou para responder. Tente novamente.",
+      })
+    }
+
+    throw error
+  } finally {
+    clearTimeout(timeout)
   }
-
-  const body = await res.json()
-
-  if (!res.ok) {
-    // Backend retorna ProblemDetails para erros
-    throw new ApiError(body as ProblemDetails)
-  }
-
-  return body as T
 }

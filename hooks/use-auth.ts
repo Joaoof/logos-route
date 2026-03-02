@@ -1,12 +1,11 @@
 // ======================================================================
 // LogosRoute — Hook de Autenticacao
 // Gerencia login, cadastro e logout com JWT.
-// Quando USE_MOCK = true, simula auth sem rede.
 // ======================================================================
 
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { getToken, setToken, removeToken } from "@/lib/api-config"
 import * as api from "@/lib/api"
 import type {
@@ -15,8 +14,12 @@ import type {
   MotoristaDto,
 } from "@/lib/types"
 
-// Mock motorista retornado quando USE_MOCK = true
-function mockMotorista(nome: string, email: string, cidade: string, appUtilizado: string): MotoristaDto {
+function mockMotorista(
+  nome: string,
+  email: string,
+  cidade: string,
+  appUtilizado: string
+): MotoristaDto {
   return {
     id: 1,
     nome,
@@ -30,21 +33,56 @@ function mockMotorista(nome: string, email: string, cidade: string, appUtilizado
 export interface UseAuthReturn {
   motorista: MotoristaDto | null
   isLoading: boolean
+  isBootstrapping: boolean
   error: string | null
   isAuthenticated: boolean
   login: (body: LoginRequest) => Promise<void>
   cadastro: (body: CadastroRequest) => Promise<void>
   logout: () => void
-  /** Bypass para modo mock — seta motorista sem chamar API */
   loginMock: (nome: string, cidade: string, appUtilizado: string) => void
 }
 
 export function useAuth(): UseAuthReturn {
   const [motorista, setMotorista] = useState<MotoristaDto | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isBootstrapping, setIsBootstrapping] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const isAuthenticated = motorista !== null
+
+  useEffect(() => {
+    let alive = true
+
+    async function bootstrapAuth() {
+      const token = getToken()
+      if (!token) {
+        if (alive) setIsBootstrapping(false)
+        return
+      }
+
+      try {
+        const me = await api.getMotorista()
+        if (alive) {
+          setMotorista(me)
+          setError(null)
+        }
+      } catch {
+        removeToken()
+        if (alive) {
+          setMotorista(null)
+          setError("Sua sessão expirou. Faça login novamente.")
+        }
+      } finally {
+        if (alive) setIsBootstrapping(false)
+      }
+    }
+
+    bootstrapAuth()
+
+    return () => {
+      alive = false
+    }
+  }, [])
 
   const doLogin = useCallback(async (body: LoginRequest) => {
     setIsLoading(true)
@@ -84,7 +122,9 @@ export function useAuth(): UseAuthReturn {
 
   const loginMock = useCallback(
     (nome: string, cidade: string, appUtilizado: string) => {
-      setMotorista(mockMotorista(nome, `${nome.toLowerCase().replace(/\s/g, ".")}@mock.dev`, cidade, appUtilizado))
+      const emailSeguro = `${nome.trim().toLowerCase().replace(/\s+/g, ".")}@mock.dev`
+      setMotorista(mockMotorista(nome.trim(), emailSeguro, cidade.trim(), appUtilizado.trim()))
+      setError(null)
     },
     []
   )
@@ -92,6 +132,7 @@ export function useAuth(): UseAuthReturn {
   return {
     motorista,
     isLoading,
+    isBootstrapping,
     error,
     isAuthenticated,
     login: doLogin,
