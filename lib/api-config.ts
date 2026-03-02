@@ -17,13 +17,16 @@ export const API_BASE_URL =
 
 /**
  * Quando true, o front usa dados mock locais e nunca chama a API real.
- * Basta setar NEXT_PUBLIC_USE_MOCK=true no .env.local para ativar.
+ * Prioridade:
+ * 1) NEXT_PUBLIC_USE_MOCK=true|false
+ * 2) fallback para ausência de NEXT_PUBLIC_API_URL
  */
 export const USE_MOCK =
-  process.env.NEXT_PUBLIC_USE_MOCK === "true" ||
-  typeof window !== "undefined"
-    ? !process.env.NEXT_PUBLIC_API_URL
-    : true
+  process.env.NEXT_PUBLIC_USE_MOCK === "true"
+    ? true
+    : process.env.NEXT_PUBLIC_USE_MOCK === "false"
+    ? false
+    : !process.env.NEXT_PUBLIC_API_URL
 
 // ======================== TOKEN ========================
 
