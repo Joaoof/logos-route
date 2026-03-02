@@ -113,7 +113,6 @@ export default function DashboardPage() {
 
   const handleLogout = useCallback(() => {
     auth.logout()
-    console.log("Logout acionado (Redirecionamento desativado para testes)")
   }, [auth])
 
   const handleNavigate = useCallback(

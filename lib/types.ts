@@ -35,9 +35,11 @@ export interface MotoristaDto {
   id: number
   nome: string
   email: string
-  cidade: string
-  appUtilizado: string
-  criadoEm: string // ISO 8601
+  cidade?: string
+  appUtilizado?: string
+  criadoEm?: string // ISO 8601
+  plano?: "free" | "pro"
+  dataFimTrial?: string
 }
 
 // ======================== VEÍCULO ========================
@@ -126,13 +128,4 @@ export interface ProblemDetails {
   status: number
   detail?: string
   errors?: Record<string, string[]>
-}
-
-// Adicione ao seu lib/types.ts
-export interface MotoristaDto {
-  id: number;
-  nome: string;
-  email: string;
-  plano: "free" | "pro";
-  dataFimTrial: string; 
 }

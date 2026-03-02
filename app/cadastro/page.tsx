@@ -4,6 +4,7 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ScreenAuth } from "@/components/screen-login"
 import { useAuth } from "@/hooks/use-auth"
+import type { CadastroRequest } from "@/lib/types"
 
 const USE_API = process.env.NEXT_PUBLIC_USE_API === "true"
 
@@ -15,7 +16,7 @@ export default function CadastroPage() {
     if (auth.isAuthenticated) router.push("/")
   }, [auth.isAuthenticated, router])
 
-  const handleCadastro = async (data: any) => {
+  const handleCadastro = async (data: CadastroRequest) => {
     if (USE_API) {
       await auth.cadastro(data)
     } else {
